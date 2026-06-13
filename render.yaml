@@ -1,18 +1,20 @@
 # Render Blueprint — deploy with one click from the repo.
 # Assumes this `tinyanim/` folder is the repo root. If tinyanim/ is a subfolder,
 # set the service "Root Directory" to `tinyanim` in the Render dashboard instead.
+#
+# This default deploys on the FREE plan (no persistent disk). The app runs fully;
+# the cumulative stats + issued keys reset whenever the free instance sleeps.
+# To persist them, see the "PERSISTENCE" comments below.
 services:
   - type: web
     name: tinyanim
     runtime: python
-    plan: free            # bump to "starter" to attach the persistent disk below
+    plan: free
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.4"
-      - key: TINYANIM_DATA_DIR
-        value: /var/data
       - key: TINYANIM_RATE_LIMIT
         value: "60"
       # Secrets — enter these in the Render dashboard (sync:false = not in git).
@@ -26,11 +28,14 @@ services:
         sync: false
       - key: STRIPE_PRICE_BUSINESS
         sync: false
-    # A persistent disk keeps the SQLite stats + temp files across restarts.
-    # NOTE: disks require a paid (non-free) instance. On the free plan, remove
-    # this block — the app still works fully; only the cumulative counter resets
-    # when the instance spins down.
-    disk:
-      name: tinyanim-data
-      mountPath: /var/data
-      sizeGB: 1
+      # PERSISTENCE: uncomment to store the DB + temp files on the disk below.
+      # - key: TINYANIM_DATA_DIR
+      #   value: /var/data
+
+    # PERSISTENCE: a disk keeps SQLite stats + issued keys across restarts.
+    # Disks require a PAID instance, so also change `plan: free` to `plan: starter`
+    # above, and uncomment TINYANIM_DATA_DIR.
+    # disk:
+    #   name: tinyanim-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
