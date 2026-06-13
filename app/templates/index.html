@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TinyAnim — Ship animations 80% lighter</title>
+  <meta name="description" content="Drop a Lottie or SVG. Keep 100% of the quality, lose up to 80% of the bytes." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+          keyframes: {
+            'fade-up': { '0%': { opacity: 0, transform: 'translateY(12px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+            'glow': { '0%,100%': { boxShadow: '0 0 24px -6px rgba(99,102,241,.7)' }, '50%': { boxShadow: '0 0 40px -2px rgba(99,102,241,.95)' } },
+          },
+          animation: { 'fade-up': 'fade-up .5s cubic-bezier(.2,.8,.2,1) both', 'glow': 'glow 2.4s ease-in-out infinite' },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://rsms.me/" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <style>
+    body { background: radial-gradient(1200px 600px at 50% -10%, #1b1f3b 0%, #0b0b12 55%, #07070c 100%); }
+    .grid-bg { background-image: linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px); background-size: 44px 44px; }
+    ::selection { background: rgba(99,102,241,.35); }
+  </style>
+</head>
+<body class="min-h-screen text-slate-200 font-sans antialiased">
+  <div class="grid-bg min-h-screen">
+    <!-- Nav -->
+    <header class="max-w-5xl mx-auto px-6 pt-8 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-400 to-violet-600 grid place-items-center font-bold text-white shadow-lg shadow-indigo-900/40">T</div>
+        <span class="font-semibold tracking-tight text-white">TinyAnim</span>
+      </div>
+      <span class="text-xs text-slate-400 border border-white/10 rounded-full px-3 py-1">100% quality · 0 external API cost</span>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-6 pb-24">
+      <!-- Hero -->
+      <section class="text-center pt-16 pb-10">
+        <h1 class="text-4xl sm:text-6xl font-semibold tracking-tight text-white leading-[1.05]">
+          Ship animations <span class="bg-gradient-to-r from-indigo-300 via-violet-300 to-fuchsia-300 bg-clip-text text-transparent">80% lighter.</span>
+        </h1>
+        <p class="mt-5 text-slate-400 text-lg max-w-xl mx-auto">
+          Drop a Lottie <code class="text-slate-300">.json</code> or an <code class="text-slate-300">.svg</code>.
+          We strip the dead weight — pixel-perfect output, dramatically smaller files.
+        </p>
+      </section>
+
+      <!-- Dropzone -->
+      <section>
+        <div id="dropzone"
+          class="relative cursor-pointer rounded-2xl border-2 border-dashed border-white/15 bg-white/[0.02] backdrop-blur
+                 px-8 py-16 text-center transition-all duration-200 hover:border-indigo-400/60 hover:bg-indigo-500/[0.04]">
+          <input id="fileInput" type="file" accept=".json,.svg,application/json,image/svg+xml" class="hidden" />
+          <div class="mx-auto mb-5 h-14 w-14 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 grid place-items-center">
+            <svg class="h-7 w-7 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+            </svg>
+          </div>
+          <p class="text-lg font-medium text-white">Drag &amp; Drop your Lottie (.json) or SVG here</p>
+          <p class="mt-1.5 text-sm text-slate-400">or <span class="text-indigo-300 underline underline-offset-4">browse files</span> · max 10&nbsp;MB</p>
+        </div>
+        <p id="errorMsg" class="hidden mt-3 text-center text-sm text-rose-400"></p>
+      </section>
+
+      <!-- Loading -->
+      <section id="loading" class="hidden mt-10 text-center">
+        <div class="inline-flex items-center gap-3 text-slate-300">
+          <span class="h-5 w-5 rounded-full border-2 border-indigo-400/30 border-t-indigo-400 animate-spin"></span>
+          Optimizing<span id="loadingName" class="text-slate-400"></span>…
+        </div>
+      </section>
+
+      <!-- Result -->
+      <section id="result" class="hidden mt-12 animate-fade-up">
+        <div class="grid md:grid-cols-5 gap-6">
+          <!-- Stats card -->
+          <div class="md:col-span-3 rounded-2xl border border-white/10 bg-white/[0.03] p-8">
+            <div class="flex items-baseline justify-between">
+              <h2 class="text-sm uppercase tracking-widest text-slate-400">Result</h2>
+              <span id="fileBadge" class="text-xs rounded-full px-2.5 py-1 bg-indigo-500/15 text-indigo-300 border border-indigo-400/20"></span>
+            </div>
+
+            <div class="mt-6 flex items-end gap-4">
+              <div>
+                <div class="text-xs text-slate-500">Before</div>
+                <div id="beforeKb" class="text-2xl font-semibold text-slate-300 line-through decoration-rose-400/60">—</div>
+              </div>
+              <svg class="h-6 w-6 text-slate-600 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m0 0-5-5m5 5-5 5"/></svg>
+              <div>
+                <div class="text-xs text-slate-500">After</div>
+                <div id="afterKb" class="text-4xl font-bold text-white">—</div>
+              </div>
+            </div>
+
+            <div class="mt-7">
+              <div class="flex items-center justify-between text-sm mb-2">
+                <span class="text-slate-400">Reduction</span>
+                <span id="savedPct" class="font-semibold text-emerald-400">—</span>
+              </div>
+              <div class="h-2.5 w-full rounded-full bg-white/10 overflow-hidden">
+                <div id="savedBar" class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-700 ease-out" style="width:0%"></div>
+              </div>
+            </div>
+
+            <a id="downloadBtn" href="#" download
+               class="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500
+                      px-6 py-3.5 font-semibold text-white animate-glow hover:from-indigo-400 hover:to-violet-400 transition">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0 4-4m-4 4-4-4M5 20h14"/></svg>
+              Download Optimized File
+            </a>
+          </div>
+
+          <!-- Preview card -->
+          <div class="md:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-6 flex flex-col">
+            <h2 class="text-sm uppercase tracking-widest text-slate-400 mb-4">Live preview</h2>
+            <div id="preview" class="flex-1 min-h-[180px] grid place-items-center rounded-xl bg-black/30 overflow-hidden p-4"></div>
+            <p class="mt-3 text-xs text-slate-500 text-center">Rendered from the <span class="text-slate-300">optimized</span> output — proof it still looks identical.</p>
+          </div>
+        </div>
+
+        <button id="againBtn" class="mt-6 mx-auto block text-sm text-slate-400 hover:text-white transition">↑ Optimize another file</button>
+      </section>
+
+      <!-- Pricing -->
+      <section class="mt-24">
+        <h2 class="text-center text-3xl font-semibold tracking-tight text-white">Simple, usage-based pricing</h2>
+        <p class="text-center text-slate-400 mt-2">Start free. Upgrade for batch processing &amp; the API.</p>
+        <div id="pricing" class="mt-10 grid sm:grid-cols-3 gap-5"></div>
+        <p class="text-center text-xs text-slate-500 mt-5">Have an API key? Send it as <code class="text-slate-300">Authorization: Bearer &lt;key&gt;</code> to <code class="text-slate-300">/api/optimize</code> or <code class="text-slate-300">/api/batch</code>.</p>
+      </section>
+
+      <!-- Global stats -->
+      <section class="mt-20 text-center">
+        <div class="inline-flex flex-wrap items-center justify-center gap-x-10 gap-y-3 rounded-2xl border border-white/10 bg-white/[0.02] px-8 py-5">
+          <div><div id="statSaved" class="text-2xl font-bold text-white">0 MB</div><div class="text-xs text-slate-500 mt-0.5">Total saved</div></div>
+          <div class="hidden sm:block h-8 w-px bg-white/10"></div>
+          <div><div id="statFiles" class="text-2xl font-bold text-white">0</div><div class="text-xs text-slate-500 mt-0.5">Files optimized</div></div>
+          <div class="hidden sm:block h-8 w-px bg-white/10"></div>
+          <div><div id="statAvg" class="text-2xl font-bold text-white">—</div><div class="text-xs text-slate-500 mt-0.5">Avg. reduction</div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput');
+
+    function showError(msg) {
+      const el = $('errorMsg');
+      el.textContent = msg; el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 5000);
+    }
+
+    // -- drag & drop wiring --------------------------------------------------
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+    ['dragenter', 'dragover'].forEach((evt) =>
+      dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add('border-indigo-400/80', 'bg-indigo-500/[0.06]'); }));
+    ['dragleave', 'drop'].forEach((evt) =>
+      dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('border-indigo-400/80', 'bg-indigo-500/[0.06]'); }));
+    dropzone.addEventListener('drop', (e) => { if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+    let lottieAnim = null;
+
+    async function handleFile(file) {
+      const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
+      if (!['.json', '.svg'].includes(ext)) return showError('Only .json (Lottie) and .svg files are supported.');
+      if (file.size > 10 * 1024 * 1024) return showError('File is larger than 10 MB.');
+
+      $('result').classList.add('hidden');
+      $('loadingName').textContent = ' ' + file.name;
+      $('loading').classList.remove('hidden');
+
+      const form = new FormData();
+      form.append('file', file);
+      try {
+        const res = await fetch('/api/optimize', { method: 'POST', body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Optimization failed.');
+        renderResult(data);
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        $('loading').classList.add('hidden');
+        fileInput.value = '';
+      }
+    }
+
+    function animateNumber(el, to, suffix, decimals) {
+      const start = performance.now(), dur = 700;
+      const step = (now) => {
+        const p = Math.min((now - start) / dur, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = (to * eased).toFixed(decimals) + suffix;
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+
+    function renderResult(data) {
+      $('beforeKb').textContent = data.original_size_kb + ' KB';
+      $('fileBadge').textContent = data.file_type === 'lottie' ? 'Lottie · JSON' : 'SVG';
+      animateNumber($('afterKb'), data.optimized_size_kb, ' KB', 2);
+      animateNumber($('savedPct'), data.saved_percentage, '%', 1);
+      $('savedPct').textContent = '-' + data.saved_percentage + '%';
+      requestAnimationFrame(() => { $('savedBar').style.width = Math.max(2, data.saved_percentage) + '%'; });
+
+      $('downloadBtn').href = data.download_url;
+      renderPreview(data);
+      $('result').classList.remove('hidden');
+      $('result').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      loadStats();
+    }
+
+    async function renderPreview(data) {
+      const box = $('preview');
+      box.innerHTML = '';
+      if (lottieAnim) { lottieAnim.destroy(); lottieAnim = null; }
+      try {
+        const res = await fetch(data.download_url);
+        if (data.file_type === 'lottie') {
+          const json = await res.json();
+          lottieAnim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: true, autoplay: true, animationData: json });
+        } else {
+          const svg = await res.text();
+          box.innerHTML = svg;
+          const el = box.querySelector('svg');
+          if (el) { el.style.maxWidth = '100%'; el.style.maxHeight = '220px'; el.style.height = 'auto'; }
+        }
+      } catch {
+        box.innerHTML = '<span class="text-slate-500 text-sm">Preview unavailable</span>';
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const s = await res.json();
+        $('statSaved').textContent = s.total_saved_mb >= 1 ? s.total_saved_mb + ' MB' : s.total_saved_kb + ' KB';
+        $('statFiles').textContent = s.total_files;
+        const avg = s.total_original_kb > 0 ? Math.round((1 - s.total_optimized_kb / s.total_original_kb) * 100) : 0;
+        $('statAvg').textContent = s.total_files ? '-' + avg + '%' : '—';
+      } catch {}
+    }
+
+    $('againBtn').addEventListener('click', () => {
+      $('result').classList.add('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    async function loadPricing() {
+      try {
+        const res = await fetch('/api/plans');
+        const { plans } = await res.json();
+        const featured = 'pro';
+        $('pricing').innerHTML = plans.map((p) => {
+          const hot = p.name === featured;
+          const price = p.price_usd === 0 ? 'Free' : '$' + p.price_usd + '<span class="text-base font-normal text-slate-400">/mo</span>';
+          return `
+          <div class="rounded-2xl border ${hot ? 'border-indigo-400/50 bg-indigo-500/[0.06]' : 'border-white/10 bg-white/[0.03]'} p-6 flex flex-col">
+            ${hot ? '<span class="self-start text-[10px] uppercase tracking-widest text-indigo-300 bg-indigo-500/15 border border-indigo-400/20 rounded-full px-2 py-0.5 mb-3">Most popular</span>' : '<span class="h-[22px] mb-3"></span>'}
+            <div class="text-sm uppercase tracking-widest text-slate-400">${p.name}</div>
+            <div class="mt-2 text-3xl font-bold text-white">${price}</div>
+            <ul class="mt-5 space-y-2 text-sm text-slate-300 flex-1">
+              <li>✓ ${p.monthly_quota.toLocaleString()} optimizations / mo</li>
+              <li>✓ Up to ${p.max_upload_mb} MB per file</li>
+              <li>${p.batch_max_files > 0 ? '✓ Batch up to ' + p.batch_max_files + ' files' : '<span class="text-slate-500">— No batch processing</span>'}</li>
+              <li>${p.name === 'free' ? '<span class="text-slate-500">— No API access</span>' : '✓ Full REST API access'}</li>
+            </ul>
+            <button data-plan="${p.name}" class="mt-6 rounded-xl px-4 py-2.5 font-semibold transition ${hot ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400' : 'border border-white/15 text-slate-200 hover:bg-white/5'}">
+              ${p.price_usd === 0 ? 'Get started' : 'Choose ' + p.name}
+            </button>
+          </div>`;
+        }).join('');
+      } catch {}
+    }
+
+    // Pricing CTAs: free scrolls to the uploader; paid plans start Stripe Checkout.
+    $('pricing').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-plan]');
+      if (!btn) return;
+      const plan = btn.dataset.plan;
+      if (plan === 'free') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      const label = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Redirecting…';
+      try {
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Checkout is unavailable right now.');
+        window.prompt('Save your API key now — it activates automatically after payment:', data.api_key);
+        window.location.href = data.checkout_url;
+      } catch (err) {
+        showError(err.message);
+        btn.disabled = false;
+        btn.textContent = label;
+      }
+    });
+
+    loadStats();
+    loadPricing();
+  </script>
+</body>
+</html>
