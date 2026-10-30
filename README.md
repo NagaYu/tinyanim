@@ -245,3 +245,11 @@ select the repo. Set these env vars:
 
 Lower the precision for even smaller files; raise it if you have extreme zoom
 requirements. Defaults are tuned to be visually lossless on screen.
+
+## License
+
+Proprietary — Copyright (c) 2026 Yuta Nagao, all rights reserved.
+This repository is public for evaluation only; no licence to use, copy,
+modify, or distribute is granted. The project is available for
+acquisition or licensing — contact via
+https://nagayu-portfolio.nagayu.workers.dev/en
