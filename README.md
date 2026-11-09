@@ -167,6 +167,11 @@ Payments are fully wired in [`app/billing.py`](app/billing.py) — **no `stripe`
 SDK dependency**; webhook signatures are verified with stdlib HMAC-SHA256 and
 Checkout Sessions are created with a single `urllib` POST.
 
+**Verification status:** this repository ships no automated test suite and no
+recorded end-to-end billing run. The billing flow is implemented in full; the
+Stripe CLI procedure below is the intended way to verify it in test mode before
+charging real customers.
+
 **The self-serve flow:**
 
 1. Visitor clicks a paid plan → `POST /api/checkout` generates an **inactive** key
@@ -205,8 +210,8 @@ stripe trigger checkout.session.completed
 ```
 
 > The plan-quota metering, 30-day reset and 402-on-exhaustion live in
-> [`app/auth.py`](app/auth.py) — billing only flips plans and activation, so the
-> enforcement path is shared and already tested.
+> [`app/auth.py`](app/auth.py) — billing only flips plans and activation, so
+> plan enforcement runs through the same code path as API-key auth.
 
 > **Schema note:** this foundation has no migration tool. After pulling the
 > billing changes, delete an existing `tinyanim.db` (dev) or start from a fresh
